@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhole Engineering Tool for Parallax Effects</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0071e3, #42a5f5);
+            --secondary-gradient: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
+            --canvas-gradient: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+            --accent-gradient: linear-gradient(135deg, #ff2d55, #ff9500);
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --border-light: rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+            --canvas-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+            --control-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --active-shadow: 0 0 0 4px rgba(0, 113, 227, 0.3);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-gradient: linear-gradient(135deg, #2997ff, #5ac8fa);
+                --secondary-gradient: linear-gradient(135deg, #1d1d1f 0%, #2c2c2e 100%);
+                --canvas-gradient: linear-gradient(135deg, #2c2c2e 0%, #323234 100%);
+                --accent-gradient: linear-gradient(135deg, #ff453a, #ff9f0a);
+                --text-primary: #f5f5f7;
+                --text-secondary: #a1a1a6;
+                --border-light: rgba(255, 255, 255, 0.1);
+                --card-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+                --canvas-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+                --control-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+                --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                --active-shadow: 0 0 0 4px rgba(41, 151, 255, 0.4);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'SF Mono', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--secondary-gradient);
+            color: var(--text-primary);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: 20px;
+        }
+        
+        h1 {
+            font-size: 30px;
+            font-weight: 700;
+            margin-bottom: 0px;
+            letter-spacing: -0.5px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+            line-height: 1.2;
+        }
+        
+        .subtitle-header {
+            font-size: 15px;
+            font-weight: 500;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            letter-spacing: 0px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+        }
+        
+        .app-mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 40px;
+        }
+
+        .app-mode-button {
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .app-mode-button.active {
+            color: white;
+            background: var(--primary-gradient);
+            border-color: transparent;
+            box-shadow: var(--button-shadow);
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1000px) {
+            main {
+                grid-template-columns: 1fr;
+                max-width: 800px;
+            }
+        }
+
+        .controls {
+            background: var(--secondary-gradient);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            height: fit-content;
+            max-height: calc(100vh - 0px);
+            overflow-y: auto;
+            border: 1px solid var(--border-light);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        .controls::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .controls::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .controls::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+        
+        .controls::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        .controls.hidden { display: none; }
+        
+        @media (max-width: 1000px) {
+            .controls {
+                max-height: calc(100vh - 200px);
+            }
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .mode-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--secondary-gradient);
+            z-index: -1;
+            transition: all 0.3s ease;
+        }
+
+        .mode-button.active {
+            color: white;
+            border-color: transparent;
+        }
+
+        .mode-button.active::before {
+            background: var(--primary-gradient);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group.hidden {
+            display: none;
+        }
+
+        .control-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-group label span {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .shape-selector {
+            margin-bottom: 8px;
+        }
+
+        .shape-selector h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .shape-options {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+        }
+
+        .shape-option {
+            flex: 1;
+        }
+
+        .shape-option input[type="radio"] {
+            display: none;
+        }
+
+        .shape-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+            border-radius: 16px;
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shape-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--secondary-gradient);
+            z-index: -1;
+            transition: all 0.3s ease;
+        }
+
+        .shape-button svg {
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            z-index: 1;
+        }
+
+        .shape-option input[type="radio"]:checked+.shape-button {
+            color: white;
+            border-color: transparent;
+        }
+
+        .shape-option input[type="radio"]:checked+.shape-button::before {
+            background: var(--primary-gradient);
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--border-light);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .form-input {
+             background-color: var(--secondary-gradient);
+             border: 1px solid var(--border-light);
+             border-radius: 12px;
+             padding: 10px 12px;
+             font-size: 14px;
+             color: var(--text-primary);
+             text-align: center;
+             font-weight: 500;
+             transition: all 0.2s ease;
+             box-shadow: var(--control-shadow);
+        }
+        
+        .form-input:focus {
+             outline: none;
+             box-shadow: var(--active-shadow);
+        }
+        
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            background: var(--primary-gradient);
+            cursor: pointer;
+            border-radius: 9999px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="number"] {
+            width: 70px;
+            background: var(--secondary-gradient);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: var(--control-shadow);
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            box-shadow: var(--active-shadow);
+        }
+
+        .unit {
+            font-size: 14px;
+            color: var(--text-secondary);
+            min-width: 30px;
+            font-weight: 500;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .canvas-container {
+            background: var(--canvas-gradient);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--canvas-shadow);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+            min-height: calc(100vh - 220px);
+        }
+        
+        @media (max-width: 1200px) {
+            .canvas-container {
+                min-height: 500px;
+            }
+        }
+
+        svg {
+            border-radius: 1px;
+            margin: 4px;
+        }
+
+        #canvas-3d {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+        }
+
+        .canvas-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .primary-button,
+        .secondary-button {
+            flex: 1;
+            border: none;
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: var(--button-shadow);
+        }
+
+        .primary-button {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .secondary-button {
+            background: var(--secondary-gradient);
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+
+        .primary-button:hover,
+        .secondary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .primary-button:active,
+        .secondary-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .primary-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .zoom-control {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .zoom-icon {
+            display: inline-flex;
+            width: 16px;
+            height: 16px;
+        }
+
+        .stats-card {
+            background: var(--secondary-gradient);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-light);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .notification-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .notification-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        .exporting .icon,
+        .resetting .icon {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Microhole Engineering Tool</h1>
+        <div class="subtitle-header">for Parallax Effects</div>
+    </header>
+
+    <div class="app-mode-selector">
+        <button id="auto-mode-btn" class="app-mode-button active">Auto</button>
+        <button id="manual-mode-btn" class="app-mode-button">Manual</button>
+    </div>
+
+    <main>
+        <div id="manual-controls" class="controls hidden">
+            <div class="mode-selector">
+                <button class="mode-button active" id="mode-2d">2D Mode</button>
+                <button class="mode-button" id="mode-3d">3D Mode</button>
+            </div>
+            <div class="control-group">
+                <label>作品の幅 <span id="width-value">150 mm</span></label>
+                <div class="input-group">
+                    <input type="range" id="width-slider" min="50" max="500" value="150" step="1">
+                    <input type="number" id="width-input" value="150" min="50" max="500">
+                    <span class="unit">mm</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>作品の高さ <span id="height-value">150 mm</span></label>
+                <div class="input-group">
+                    <input type="range" id="height-slider" min="50" max="500" value="150" step="1">
+                    <input type="number" id="height-input" value="150" min="50" max="500">
+                    <span class="unit">mm</span>
+                </div>
+            </div>
+            <div class="control-group hidden" id="thickness-control">
+                <label>厚み <span id="thickness-value">10 mm</span></label>
+                <div class="input-group">
+                    <input type="range" id="thickness-slider" min="1" max="50" value="10" step="0.5">
+                    <input type="number" id="thickness-input" value="10" min="1" max="50" step="0.5">
+                    <span class="unit">mm</span>
+                </div>
+            </div>
+            <div class="shape-selector">
+                <h3>穴の形状</h3>
+                <div class="shape-options">
+                    <label class="shape-option">
+                        <input type="radio" name="shape" value="circle" checked>
+                        <span class="shape-button">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none" />
+                            </svg>
+                            <span>CIRCLE</span>
+                        </span>
+                    </label>
+                    <label class="shape-option">
+                        <input type="radio" name="shape" value="square">
+                        <span class="shape-button">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" />
+                            </svg>
+                            <span>SQUARE</span>
+                        </span>
+                    </label>
+                    <label class="shape-option">
+                        <input type="radio" name="shape" value="triangle">
+                        <span class="shape-button">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3L21 21H3L12 3Z" stroke="currentColor" stroke-width="2" fill="none" />
+                            </svg>
+                            <span>TRIANGLE</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>穴の大きさ <span id="shape-size-value">2 mm</span></label>
+                <div class="input-group">
+                    <input type="range" id="shape-size-slider" min="1" max="50" value="2" step="0.5">
+                    <input type="number" id="shape-size-input" value="2" min="1" max="50" step="0.5">
+                    <span class="unit">mm</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>穴同士の間隔 <span id="spacing-value">2 mm</span></label>
+                <div class="input-group">
+                    <input type="range" id="spacing-slider" min="0" max="30" value="2" step="0.01">
+                    <input type="number" id="spacing-input" value="2" min="0" max="30" step="0.01">
+                    <span class="unit">mm</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 6H16M6 12H18M9 18H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">合計数</div>
+                        <div id="total-shapes" class="stat-value">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="action-bar">
+                <button id="export-btn" class="primary-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M9 13L12 16L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M20 21H4C3.44772 21 3 20.5523 3 20V4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V20C21 20.5523 20.5523 21 20 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span id="export-text">SVG</span>
+                </button>
+                <button id="reset" class="secondary-button">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 4V9H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M20 20V15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M16.5 7.5C15.3565 6.35653 13.8575 5.71531 12.2857 5.72044C10.714 5.72557 9.21958 6.37681 8.08335 7.53136C6.94712 8.68591 6.31821 10.1922 6.32663 11.764C6.33505 13.3358 6.97012 14.8347 8.11669 15.9778" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M7.5 16.5C8.64347 17.6435 10.1425 18.2847 11.7143 18.2796C13.286 18.2744 14.7804 17.6232 15.9166 16.4686C17.0529 15.3141 17.6818 13.8078 17.6734 12.236C17.665 10.6642 17.0299 9.16528 15.8833 8.02225" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <div id="auto-controls" class="controls">
+            <form id="param-form">
+                <div style="background: rgba(0,0,0,0.03); padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">素材パラメータ</h3>
+                    
+                    <div class="control-group" style="margin-bottom: 20px;">
+                        <label class="block text-sm font-medium">素材の厚み T (mm)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">min</span>
+                            <input type="number" id="t_min" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">MAX</span>
+                            <input type="number" id="t_max" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group" style="margin-bottom: 20px;">
+                        <label class="block text-sm font-medium">穴径 D (mm)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">min</span>
+                            <input type="number" id="d_min" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">MAX</span>
+                            <input type="number" id="d_max" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="block text-sm font-medium">穴の間隔 P (mm)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">min</span>
+                            <input type="number" id="p_min" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">MAX</span>
+                            <input type="number" id="p_max" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(0,0,0,0.03); padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">視差効果をねらう範囲</h3>
+                    
+                    <div class="control-group" style="margin-bottom: 20px;">
+                        <label class="block text-sm font-medium">観察距離 L (m)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">min</span>
+                            <input type="number" id="l_min" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                            <span style="font-size: 11px; color: var(--text-secondary); width: 30px;">MAX</span>
+                            <input type="number" id="l_max" placeholder="" step="0.1" class="form-input" style="width: 80px;">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group" style="margin-bottom: 20px;">
+                        <label class="block text-sm font-medium">見せたい角度 α (°)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" id="target_angle" placeholder="" step="1" class="form-input" style="width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="block text-sm font-medium">見せたい幅 W (m)</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" id="target_width" placeholder="" step="0.001" class="form-input" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(0,0,0,0.03); padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary);">効果の好み</h3>
+                    
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);">
+                            <span>なめらか</span>
+                            <span>シャープ</span>
+                        </div>
+                        <input id="sharpness-pref" type="range" min="0" max="100" value="50" class="slider-thumb" style="width: 100%;">
+                    </div>
+                </div>
+                
+                <button type="submit" id="calculate-btn" class="primary-button" style="width: 100%; margin-top: 16px;">
+                     計算開始
+                </button>
+            </form>
+            
+            <div id="results-section" class="hidden" style="margin-top: 24px;">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">推奨パラメータ (Top 10)</h3>
+                <div id="results-list"></div>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <div class="canvas-container" id="canvas-container">
+                <svg id="canvas" width="150mm" height="150mm" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="150" height="150" fill="white" stroke="black" stroke-width="0.5" />
+                </svg>
+                <canvas id="canvas-3d" style="display: none;"></canvas>
+                <div class="zoom-control">
+                    <span class="zoom-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" />
+                            <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+            <div class="canvas-hint" id="canvas-hint">Zoom with mouse wheel</div>
+        </div>
+    </main>
+    <footer>
+        <p>Professional parametric design tools by Toriu</p>
+    </footer>
+
+    <script>
+        const manualModeBtn = document.getElementById('manual-mode-btn');
+        const autoModeBtn = document.getElementById('auto-mode-btn');
+        const manualControls = document.getElementById('manual-controls');
+        const autoControls = document.getElementById('auto-controls');
+
+        const widthSlider = document.getElementById('width-slider');
+        const widthInput = document.getElementById('width-input');
+        const widthValue = document.getElementById('width-value');
+        const heightSlider = document.getElementById('height-slider');
+        const heightInput = document.getElementById('height-input');
+        const heightValue = document.getElementById('height-value');
+        const thicknessSlider = document.getElementById('thickness-slider');
+        const thicknessInput = document.getElementById('thickness-input');
+        const thicknessValue = document.getElementById('thickness-value');
+        const thicknessControl = document.getElementById('thickness-control');
+        const shapeRadios = document.querySelectorAll('input[name="shape"]');
+        const shapeSizeSlider = document.getElementById('shape-size-slider');
+        const shapeSizeInput = document.getElementById('shape-size-input');
+        const shapeSizeValue = document.getElementById('shape-size-value');
+        const spacingSlider = document.getElementById('spacing-slider');
+        const spacingInput = document.getElementById('spacing-input');
+        const spacingValue = document.getElementById('spacing-value');
+        
+        const canvas = document.getElementById('canvas');
+        const canvas3d = document.getElementById('canvas-3d');
+        const canvasContainer = document.getElementById('canvas-container');
+        const exportButton = document.getElementById('export-btn');
+        let exportText = document.getElementById('export-text');
+        const resetButton = document.getElementById('reset');
+        const zoomLevel = document.getElementById('zoom-level');
+        const totalShapes = document.getElementById('total-shapes');
+        const canvasHint = document.getElementById('canvas-hint');
+        const mode2DButton = document.getElementById('mode-2d');
+        const mode3DButton = document.getElementById('mode-3d');
+        
+        let currentZoom = 1;
+        let zoomSensitivity = 0.1;
+        let currentMode = '2D';
+        let scene, camera, renderer, controls;
+        let meshes = [];
+        let animationId;
+
+        manualModeBtn.addEventListener('click', () => {
+            if (manualControls.classList.contains('hidden')) {
+                manualModeBtn.classList.add('active');
+                autoModeBtn.classList.remove('active');
+                manualControls.classList.remove('hidden');
+                autoControls.classList.add('hidden');
+            }
+        });
+
+        autoModeBtn.addEventListener('click', () => {
+             if (autoControls.classList.contains('hidden')) {
+                autoModeBtn.classList.add('active');
+                manualModeBtn.classList.remove('active');
+                autoControls.classList.remove('hidden');
+                manualControls.classList.add('hidden');
+            }
+        });
+
+        function syncInputs(slider, input, valueDisplay, unit = 'mm') {
+            slider.addEventListener('input', () => {
+                input.value = slider.value;
+                valueDisplay.textContent = `${slider.value} ${unit}`;
+                updateCanvas();
+            });
+            input.addEventListener('input', () => {
+                let value = parseFloat(input.value);
+                if (isNaN(value)) return;
+                const min = parseFloat(input.min);
+                const max = parseFloat(input.max);
+                if (value < min) value = min;
+                if (value > max) value = max;
+                slider.value = value;
+                valueDisplay.textContent = `${value} ${unit}`;
+                updateCanvas();
+            });
+        }
+        
+        syncInputs(widthSlider, widthInput, widthValue);
+        syncInputs(heightSlider, heightInput, heightValue);
+        syncInputs(thicknessSlider, thicknessInput, thicknessValue);
+        syncInputs(shapeSizeSlider, shapeSizeInput, shapeSizeValue);
+        syncInputs(spacingSlider, spacingInput, spacingValue);
+        
+        function updateSpacingConstraint() {
+            const D = parseFloat(shapeSizeSlider.value);
+            const currentP = parseFloat(spacingSlider.value);
+            
+            spacingSlider.min = D;
+            spacingInput.min = D;
+            
+            if (currentP < D) {
+                spacingSlider.value = D;
+                spacingInput.value = D;
+                spacingValue.textContent = `${D.toFixed(2)} mm`;
+                updateCanvas();
+            }
+        }
+        
+        shapeSizeSlider.addEventListener('input', updateSpacingConstraint);
+        shapeSizeInput.addEventListener('input', updateSpacingConstraint);
+        
+        updateSpacingConstraint();
+        
+        shapeRadios.forEach(radio => {
+            radio.addEventListener('change', updateCanvas);
+        });
+
+        mode2DButton.addEventListener('click', () => {
+            if (currentMode !== '2D') {
+                currentMode = '2D';
+                mode2DButton.classList.add('active');
+                mode3DButton.classList.remove('active');
+                canvas.style.display = 'block';
+                canvas3d.style.display = 'none';
+                thicknessControl.classList.add('hidden');
+                exportText.textContent = 'SVG';
+                canvasHint.textContent = 'Zoom with mouse wheel';
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                updateCanvas();
+            }
+        });
+        
+        mode3DButton.addEventListener('click', () => {
+            if (currentMode !== '3D') {
+                currentMode = '3D';
+                mode3DButton.classList.add('active');
+                mode2DButton.classList.remove('active');
+                canvas.style.display = 'none';
+                canvas3d.style.display = 'block';
+                thicknessControl.classList.remove('hidden');
+                exportText.textContent = 'OBJ';
+                canvasHint.textContent = 'Drag to rotate, Shift+Drag to pan, Scroll to zoom';
+                init3D();
+                updateCanvas();
+            }
+        });
+        
+        function init3D() {
+            if (!scene) {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x999999);
+                
+                const aspect = canvasContainer.clientWidth / canvasContainer.clientHeight;
+                camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 2000);
+                camera.position.set(0, 300, 20);
+                camera.lookAt(0, 0, 0);
+                
+                renderer = new THREE.WebGLRenderer({
+                    canvas: canvas3d,
+                    antialias: true
+                });
+                renderer.setSize(canvasContainer.clientWidth - 48, canvasContainer.clientHeight - 48);
+                renderer.shadowMap.enabled = false;
+                
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(0.5, 1, 0.5);
+                scene.add(directionalLight);
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+                directionalLight2.position.set(-0.5, 1, -0.5);
+                scene.add(directionalLight2);
+                
+                setupMouseControls();
+            }
+            animate3D();
+        }
+        
+        function setupMouseControls() {
+            let isRotating = false, isPanning = false, mouseX = 0, mouseY = 0;
+            let targetRotationX = -Math.PI / 2 + 0.1, targetRotationY = 0, targetPanX = 0, targetPanY = 0;
+            let cameraDistance = 300;
+            
+            canvas3d.addEventListener('mousedown', (e) => {
+                isPanning = e.shiftKey;
+                isRotating = !isPanning;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            canvas3d.addEventListener('mousemove', (e) => {
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                if (isRotating) {
+                    targetRotationY += deltaX * 0.01;
+                    targetRotationX -= deltaY * 0.01;
+                } else if (isPanning) {
+                    targetPanX += deltaX * 0.5;
+                    targetPanY -= deltaY * 0.5;
+                }
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            const stopTracking = () => { isRotating = false; isPanning = false; };
+            canvas3d.addEventListener('mouseup', stopTracking);
+            canvas3d.addEventListener('mouseleave', stopTracking);
+            
+            function updateCamera() {
+                targetRotationX = Math.max(-Math.PI + 0.1, Math.min(-0.1, targetRotationX));
+                camera.position.x = cameraDistance * Math.sin(targetRotationY) * Math.cos(targetRotationX) + targetPanX;
+                camera.position.y = -cameraDistance * Math.sin(targetRotationX) + targetPanY;
+                camera.position.z = cameraDistance * Math.cos(targetRotationY) * Math.cos(targetRotationX);
+                camera.lookAt(targetPanX, targetPanY, 0);
+            }
+            
+            canvas3d.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                const zoomSpeed = 0.05;
+                const delta = e.deltaY > 0 ? 1 : -1;
+                cameraDistance *= (1 + delta * zoomSpeed);
+                
+                cameraDistance = Math.max(50, Math.min(1000, cameraDistance));
+                
+                const zoomPercent = Math.round((300 / cameraDistance) * 100);
+                zoomLevel.textContent = `${zoomPercent}%`;
+                
+                updateCamera();
+            });
+            
+            canvas3d.updateCamera = updateCamera;
+            updateCamera();
+        }
+        
+        function animate3D() {
+            animationId = requestAnimationFrame(animate3D);
+            if (canvas3d.updateCamera) canvas3d.updateCamera();
+            renderer.render(scene, camera);
+        }
+        
+        function updateCanvas() {
+            if (currentMode === '2D') update2DCanvas();
+            else update3DCanvas();
+        }
+        
+        function update2DCanvas() {
+            const width = parseFloat(widthSlider.value);
+            const height = parseFloat(heightSlider.value);
+            const shapeSize = parseFloat(shapeSizeSlider.value);
+            const spacing = parseFloat(spacingSlider.value);
+            let shapeType = document.querySelector('input[name="shape"]:checked').value;
+            canvas.setAttribute('width', `${width}mm`);
+            canvas.setAttribute('height', `${height}mm`);
+            canvas.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            canvas.innerHTML = `<rect width="${width}" height="${height}" fill="white" stroke="black" stroke-width="0.5"/>`;
+            
+            let shapeCount = 0;
+            const radius = shapeSize / 2;
+            const horizontalSpacing = shapeSize + spacing;
+            const verticalSpacing = radius + (spacing / 2);
+            const usableWidth = width - (shapeSize * 2);
+            const usableHeight = height - (shapeSize * 2);
+            const shapesX = Math.floor(usableWidth / horizontalSpacing);
+            const shapesY = Math.floor(usableHeight / verticalSpacing);
+            const totalWidthNeeded = shapesX * horizontalSpacing - spacing;
+            const totalHeightNeeded = shapesY * verticalSpacing;
+            const marginX = (width - totalWidthNeeded) / 2;
+            const marginY = (height - totalHeightNeeded) / 2;
+            let shapesHtml = '';
+
+            for (let y = 0; y < shapesY; y++) {
+                const isOddRow = y % 2 === 1;
+                const rowOffset = isOddRow ? horizontalSpacing / 2 : 0;
+                const rowShapes = isOddRow ? shapesX - 1 : shapesX;
+                for (let x = 0; x < rowShapes; x++) {
+                    const cx = marginX + x * horizontalSpacing + radius + rowOffset;
+                    const cy = marginY + y * verticalSpacing + radius;
+                    if (cx - radius < 0 || cx + radius > width || cy - radius < 0 || cy + radius > height) continue;
+                    
+                    let shape;
+                    switch (shapeType) {
+                        case 'circle':
+                            shapesHtml += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="black" stroke-width="0.25"/>`;
+                            break;
+                        case 'square':
+                            shapesHtml += `<rect x="${cx - radius}" y="${cy - radius}" width="${shapeSize}" height="${shapeSize}" fill="none" stroke="black" stroke-width="0.25"/>`;
+                            break;
+                        case 'triangle':
+                            const isInverted = (y + x) % 2 === 1;
+                            let points;
+                            if (isInverted) {
+                                points = `${cx},${cy - radius} ${cx - radius * Math.cos(Math.PI/6)},${cy + radius * Math.sin(Math.PI/6)} ${cx + radius * Math.cos(Math.PI/6)},${cy + radius * Math.sin(Math.PI/6)}`;
+                            } else {
+                                points = `${cx},${cy + radius} ${cx - radius * Math.cos(Math.PI/6)},${cy - radius * Math.sin(Math.PI/6)} ${cx + radius * Math.cos(Math.PI/6)},${cy - radius * Math.sin(Math.PI/6)}`;
+                            }
+                            shapesHtml += `<polygon points="${points}" fill="none" stroke="black" stroke-width="0.25"/>`;
+                            break;
+                    }
+                    shapeCount++;
+                }
+            }
+            canvas.innerHTML += shapesHtml;
+            animateCountUp(parseInt(totalShapes.textContent || '0'), shapeCount, totalShapes);
+            updateZoomLevel();
+        }
+        
+        function update3DCanvas() {
+            if (!scene) return;
+            meshes.forEach(mesh => scene.remove(mesh));
+            meshes = [];
+
+            const width = parseFloat(widthSlider.value);
+            const height = parseFloat(heightSlider.value);
+            const thickness = parseFloat(thicknessSlider.value);
+            const shapeSize = parseFloat(shapeSizeSlider.value);
+            const spacing = parseFloat(spacingSlider.value);
+            let shapeType = document.querySelector('input[name="shape"]:checked').value;
+            const material = new THREE.MeshPhongMaterial({ color: 0xf0f0f0, emissive: 0x202020, emissiveIntensity: 0.2, side: THREE.DoubleSide });
+            
+            const radius = shapeSize / 2;
+            const hSpacing = shapeSize + spacing;
+            const vSpacing = radius + (spacing / 2);
+            const shapesX = Math.floor((width - shapeSize * 2) / hSpacing) + 1;
+            const shapesY = Math.floor((height - shapeSize * 2) / vSpacing) + 1;
+            
+            const estimatedHoles = shapesX * shapesY;
+            
+            if (estimatedHoles > 6000) {
+                showNotification('穴の数が多すぎるため、3D描画に時間がかかる可能性があります', 'error');
+            }
+            
+            const marginX = (width - (shapesX - 1) * hSpacing) / 2;
+            const marginY = (height - (shapesY - 1) * vSpacing) / 2;
+            
+            const shape = new THREE.Shape();
+            shape.moveTo(-width / 2, -height / 2);
+            shape.lineTo(width / 2, -height / 2);
+            shape.lineTo(width / 2, height / 2);
+            shape.lineTo(-width / 2, height / 2);
+            shape.closePath();
+            
+            let holeCount = 0;
+            const MAX_HOLES_FOR_3D = 5000;
+            
+            for (let y = 0; y < shapesY; y++) {
+                const oddRow = y % 2 === 1;
+                const rowOffset = oddRow ? hSpacing / 2 : 0;
+                const rowShapes = oddRow ? shapesX - 1 : shapesX;
+                for (let x = 0; x < rowShapes; x++) {
+                    if (holeCount >= MAX_HOLES_FOR_3D) break;
+                    
+                    const cx = marginX + x * hSpacing + rowOffset - width / 2;
+                    const cy = marginY + y * vSpacing - height / 2;
+                    if (Math.abs(cx) + radius > width / 2 || Math.abs(cy) + radius > height / 2) continue;
+                    
+                    const holePath = new THREE.Path();
+                    if (shapeType === 'circle') {
+                        holePath.absarc(cx, cy, radius, 0, Math.PI * 2, false);
+                    } else if (shapeType === 'square') {
+                        holePath.moveTo(cx - radius, cy - radius);
+                        holePath.lineTo(cx + radius, cy - radius);
+                        holePath.lineTo(cx + radius, cy + radius);
+                        holePath.lineTo(cx - radius, cy + radius);
+                        holePath.closePath();
+                    } else if (shapeType === 'triangle') {
+                        const inv = (y + x) % 2 === 1;
+                        const h = radius * Math.cos(Math.PI / 6);
+                        if (inv) {
+                            holePath.moveTo(cx, cy - radius);
+                            holePath.lineTo(cx - h, cy + radius / 2);
+                            holePath.lineTo(cx + h, cy + radius / 2);
+                        } else {
+                            holePath.moveTo(cx, cy + radius);
+                            holePath.lineTo(cx - h, cy - radius / 2);
+                            holePath.lineTo(cx + h, cy - radius / 2);
+                        }
+                        holePath.closePath();
+                    }
+                    shape.holes.push(holePath);
+                    holeCount++;
+                }
+                if (holeCount >= MAX_HOLES_FOR_3D) break;
+            }
+            
+            const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+            geometry.rotateX(-Math.PI / 2);
+            if (!geometry.attributes.normal) geometry.computeVertexNormals();
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+            meshes.push(mesh);
+            animateCountUp(parseInt(totalShapes.textContent || '0'), holeCount, totalShapes);
+        }
+        
+        function animateCountUp(start, end, element) {
+            if (start === end) return;
+            const duration = 500, startTime = performance.now();
+            function updateCount(currentTime) {
+                const progress = Math.min((currentTime - startTime) / duration, 1);
+                const easedProgress = 1 - Math.pow(1 - progress, 3);
+                element.textContent = Math.floor(start + (end - start) * easedProgress);
+                if (progress < 1) requestAnimationFrame(updateCount);
+                else element.textContent = end;
+            }
+            requestAnimationFrame(updateCount);
+        }
+        function updateZoomLevel() {
+            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+        }
+        canvasContainer.addEventListener('wheel', (event) => {
+            if (currentMode === '2D') {
+                event.preventDefault();
+                const delta = -Math.sign(event.deltaY);
+                currentZoom = Math.max(0.1, Math.min(5.0, currentZoom + delta * zoomSensitivity));
+                canvas.style.transform = `scale(${currentZoom})`;
+                updateZoomLevel();
+            }
+        });
+        exportButton.addEventListener('click', () => {
+            if (currentMode === '2D') exportSVG();
+            else exportOBJ();
+        });
+        function exportSVG() {
+            try {
+                exportButton.classList.add('exporting');
+                const originalText = exportText.textContent;
+                exportButton.innerHTML = '<svg class="icon loading" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>Exporting...';
+                setTimeout(() => {
+                    const svgContent = new XMLSerializer().serializeToString(canvas);
+                    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8" standalone="no"?>${svgContent}`], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'parametric-shapes.svg';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    exportButton.classList.remove('exporting');
+                    exportButton.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 13L12 16L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21H4C3.44772 21 3 20.5523 3 20V4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V20C21 20.5523 20.5523 21 20 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="export-text">${originalText}</span>`;
+                    exportText = document.getElementById('export-text');
+                    showNotification('SVG exported successfully');
+                }, 800);
+            } catch (error) {
+                console.error('SVG export error:', error);
+                showNotification('SVG export error', 'error');
+            }
+        }
+        function exportOBJ() {
+             try {
+                exportButton.classList.add('exporting');
+                const originalText = exportText.textContent;
+                exportButton.innerHTML = '<svg class="icon loading" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>Exporting...';
+
+                setTimeout(() => {
+                    let objContent = '# Parametric Generator 3D Export\no PerforatedPlate\n';
+                    const mesh = meshes[0];
+                    if (mesh && mesh.geometry) {
+                        const { position, normal } = mesh.geometry.attributes;
+                        for (let i = 0; i < position.count; i++) objContent += `v ${position.getX(i).toFixed(4)} ${position.getY(i).toFixed(4)} ${position.getZ(i).toFixed(4)}\n`;
+                        if (normal) for (let i = 0; i < normal.count; i++) objContent += `vn ${normal.getX(i).toFixed(4)} ${normal.getY(i).toFixed(4)} ${normal.getZ(i).toFixed(4)}\n`;
+                        
+                        const indices = mesh.geometry.index;
+                        const faceData = (a, b, c) => `f ${a}//${a} ${b}//${b} ${c}//${c}\n`;
+                        if (indices) {
+                            for (let i = 0; i < indices.count; i += 3) objContent += faceData(indices.getX(i) + 1, indices.getX(i + 1) + 1, indices.getX(i + 2) + 1);
+                        } else {
+                            for (let i = 0; i < position.count; i += 3) objContent += faceData(i + 1, i + 2, i + 3);
+                        }
+                    }
+                    
+                    const blob = new Blob([objContent], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'parametric-perforated-plate.obj';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    exportButton.classList.remove('exporting');
+                    exportButton.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 13L12 16L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21H4C3.44772 21 3 20.5523 3 20V4C3 3.44772 3.44772 3 4 3H20C20.5523 3 21 3.44772 21 4V20C21 20.5523 20.5523 21 20 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="export-text">${originalText}</span>`;
+                    exportText = document.getElementById('export-text');
+                    showNotification('OBJ exported successfully');
+                }, 800);
+            } catch (error) {
+                console.error('OBJ export error:', error);
+                 showNotification('OBJ export error', 'error');
+            }
+        }
+        function showNotification(message, type = 'success') {
+            document.querySelector('.notification')?.remove();
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `<span class="notification-icon">${type === 'success' ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8V12M12 16H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'}</span> ${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 10);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        resetButton.addEventListener('click', () => {
+            resetButton.classList.add('resetting');
+            currentZoom = 1;
+            if (currentMode === '2D') {
+                canvas.style.transition = 'transform 0.3s ease-out';
+                canvas.style.transform = `scale(${currentZoom})`;
+                updateZoomLevel();
+            }
+            animateSlider(widthSlider, widthInput, widthValue, 150);
+            animateSlider(heightSlider, heightInput, heightValue, 150);
+            animateSlider(thicknessSlider, thicknessInput, thicknessValue, 10);
+            animateSlider(shapeSizeSlider, shapeSizeInput, shapeSizeValue, 2);
+            animateSlider(spacingSlider, spacingInput, spacingValue, 2);
+            document.querySelector('input[name="shape"][value="circle"]').checked = true;
+            setTimeout(() => {
+                resetButton.classList.remove('resetting');
+                showNotification('Settings reset');
+                if (currentMode === '2D') {
+                    setTimeout(() => { canvas.style.transition = 'none'; }, 300);
+                }
+            }, 800);
+        });
+        function animateSlider(slider, input, valueDisplay, targetValue, duration = 800) {
+            const startValue = parseFloat(slider.value);
+            const startTime = performance.now();
+            function updateSlider(currentTime) {
+                const progress = Math.min((currentTime - startTime) / duration, 1);
+                const easedProgress = 1 - Math.pow(1 - progress, 3);
+                const currentValue = startValue + (targetValue - startValue) * easedProgress;
+                slider.value = currentValue;
+                input.value = targetValue.toFixed(slider.step.includes('.') ? 2 : 0);
+                valueDisplay.textContent = `${targetValue} mm`;
+                if (progress < 1) requestAnimationFrame(updateSlider);
+                else updateCanvas();
+            }
+            requestAnimationFrame(updateSlider);
+        }
+        window.addEventListener('resize', () => {
+            if (renderer) {
+                const width = canvasContainer.clientWidth - 48;
+                const height = canvasContainer.clientHeight - 48;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const controls = document.querySelectorAll('.control-group:not(.hidden), .shape-selector, .stats-card, .action-bar, .mode-selector');
+            controls.forEach((control, index) => {
+                control.style.opacity = '0';
+                control.style.transform = 'translateY(20px)';
+                control.style.transition = `opacity 0.5s ${index * 0.05}s ease, transform 0.5s ${index * 0.05}s ease`;
+                setTimeout(() => {
+                    control.style.opacity = '1';
+                    control.style.transform = 'translateY(0)';
+                }, 100);
+            });
+            updateCanvas();
+        });
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('focus', function() { this.select(); });
+        });
+        
+        document.getElementById('param-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            calculateOptimalParameters();
+        });
+        
+        function calculateOptimalParameters() {
+            const calculateBtn = document.getElementById('calculate-btn');
+            calculateBtn.disabled = true;
+            calculateBtn.textContent = '計算中...';
+            
+            setTimeout(() => {
+                try {
+                    const T_min = document.getElementById('t_min').value ? parseFloat(document.getElementById('t_min').value) : 1.0;
+                    const T_max = document.getElementById('t_max').value ? parseFloat(document.getElementById('t_max').value) : 5.0;
+                    const D_min = document.getElementById('d_min').value ? parseFloat(document.getElementById('d_min').value) : 0.5;
+                    const D_max = document.getElementById('d_max').value ? parseFloat(document.getElementById('d_max').value) : 3.0;
+                    const P_min = document.getElementById('p_min').value ? parseFloat(document.getElementById('p_min').value) : 1.0;
+                    const P_max = document.getElementById('p_max').value ? parseFloat(document.getElementById('p_max').value) : 5.0;
+                    const L_min = document.getElementById('l_min').value ? parseFloat(document.getElementById('l_min').value) : 1.0;
+                    const L_max = document.getElementById('l_max').value ? parseFloat(document.getElementById('l_max').value) : 6.0;
+                    
+                    const target_angle = document.getElementById('target_angle').value ? parseFloat(document.getElementById('target_angle').value) : null;
+                    const target_width_m = document.getElementById('target_width').value ? parseFloat(document.getElementById('target_width').value) : null;
+                    const target_width = target_width_m ? target_width_m * 1000 : null;
+                    
+                    const sharpness_preference = parseFloat(document.getElementById('sharpness-pref').value) / 100;
+                    
+                    if ((document.getElementById('t_min').value && document.getElementById('t_max').value && T_min > T_max) ||
+                        (document.getElementById('d_min').value && document.getElementById('d_max').value && D_min > D_max) ||
+                        (document.getElementById('p_min').value && document.getElementById('p_max').value && P_min > P_max) ||
+                        (document.getElementById('l_min').value && document.getElementById('l_max').value && L_min > L_max)) {
+                        showNotification('最小値は最大値以下である必要があります', 'error');
+                        calculateBtn.disabled = false;
+                        calculateBtn.textContent = '計算開始';
+                        return;
+                    }
+                    
+                    if (document.getElementById('p_max').value && document.getElementById('d_min').value && P_max < D_min) {
+                        showNotification('間隔P（最大）は穴径D（最小）以上である必要があります', 'error');
+                        calculateBtn.disabled = false;
+                        calculateBtn.textContent = '計算開始';
+                        return;
+                    }
+                    
+                    const candidates = generateCandidates(T_min, T_max, D_min, D_max, P_min, P_max, L_min, L_max);
+                    
+                    if (candidates.length === 0) {
+                        showNotification('パラメータ範囲内で有効な組み合わせが見つかりませんでした', 'error');
+                        calculateBtn.disabled = false;
+                        calculateBtn.textContent = '計算開始';
+                        return;
+                    }
+                    
+                    // Calculate metrics for each candidate
+                    const scoredCandidates = candidates.map(c => {
+                        const angle = calculateEffectiveAngle(c.T, c.D, c.P, c.L);
+                        const sharpness = (2 * c.L * 1000 * c.D) / c.T;
+                        const width = (2 * c.L * 1000 * c.D) / c.T; // in mm
+                        const isHoleVisible = c.D >= (c.L * 1000 / 3438); // 穴が目立つか
+                        return { ...c, angle, sharpness, width, isHoleVisible };
+                    });
+                    
+                    // Normalize each metric for scoring
+                    const angles = scoredCandidates.map(c => c.angle);
+                    const sharpnesses = scoredCandidates.map(c => c.sharpness);
+                    const widths = scoredCandidates.map(c => c.width);
+                    const D_values = scoredCandidates.map(c => c.D);
+                    
+                    const minSharp = Math.min(...sharpnesses);
+                    const maxSharp = Math.max(...sharpnesses);
+                    const minD = Math.min(...D_values);
+                    const maxD = Math.max(...D_values);
+                    
+                    const normalizedCandidates = scoredCandidates.map(c => {
+                        // Sharpness score (0-1)
+                        const sharpnessScore = maxSharp === minSharp ? 0.5 : (c.sharpness - minSharp) / (maxSharp - minSharp);
+                        
+                        // Hole visibility score (smaller D = higher score)
+                        const visibilityScore = maxD === minD ? 1 : 1 - (c.D - minD) / (maxD - minD);
+                        
+                        // Angle match score (if target specified)
+                        let angleScore = 0.5; // neutral if no target
+                        if (target_angle !== null) {
+                            const angleDiff = Math.abs(c.angle - target_angle);
+                            angleScore = Math.max(0, 1 - angleDiff / 90); // max 90° difference
+                        }
+                        
+                        // Width match score (if target specified)
+                        let widthScore = 0.5; // neutral if no target
+                        if (target_width !== null) {
+                            const widthDiff = Math.abs(c.width - target_width);
+                            const maxAllowedDiff = target_width; // 100% difference tolerance
+                            widthScore = Math.max(0, 1 - widthDiff / maxAllowedDiff);
+                        }
+                        
+                        return { ...c, sharpnessScore, visibilityScore, angleScore, widthScore };
+                    });
+                    
+                    // Calculate final score with weights
+                    const finalCandidates = normalizedCandidates.map(c => {
+                        // Sharpness preference matching
+                        let sharpMatch;
+                        if (sharpness_preference < 0.5) {
+                            sharpMatch = (1 - c.sharpnessScore) * (1 - sharpness_preference * 2);
+                        } else {
+                            sharpMatch = c.sharpnessScore * ((sharpness_preference - 0.5) * 2);
+                        }
+                        
+                        // Weighted scoring
+                        const weights = {
+                            angle: target_angle !== null ? 0.3 : 0,
+                            width: target_width !== null ? 0.2 : 0,
+                            sharpness: 0.2,
+                            visibility: 0.3
+                        };
+                        
+                        // Normalize weights to sum to 1
+                        const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+                        const normalizedWeights = {
+                            angle: weights.angle / totalWeight,
+                            width: weights.width / totalWeight,
+                            sharpness: weights.sharpness / totalWeight,
+                            visibility: weights.visibility / totalWeight
+                        };
+                        
+                        const finalScore = 
+                            c.angleScore * normalizedWeights.angle +
+                            c.widthScore * normalizedWeights.width +
+                            sharpMatch * normalizedWeights.sharpness +
+                            c.visibilityScore * normalizedWeights.visibility;
+                        
+                        return { ...c, finalScore };
+                    });
+                    
+                    finalCandidates.sort((a, b) => b.finalScore - a.finalScore);
+                    
+                    displayResults(finalCandidates.slice(0, 10), target_angle, target_width);
+                    
+                    showNotification(`${candidates.length}個のパラメータを評価しました（Top 10を表示）`);
+                } catch (error) {
+                    console.error('Calculation error:', error);
+                    showNotification('計算中にエラーが発生しました', 'error');
+                }
+                
+                calculateBtn.disabled = false;
+                calculateBtn.textContent = '計算開始';
+            }, 100);
+        }
+        
+        function generateCandidates(T_min, T_max, D_min, D_max, P_min, P_max, L_min, L_max) {
+            const candidates = [];
+            const step = 0.5;
+            const L_step = 0.5;
+            const MAX_CANDIDATES = 1000; // Increased limit
+            
+            // Generate value arrays
+            const T_values = [];
+            for (let t = T_min; t <= T_max; t += step) {
+                T_values.push(Math.round(t * 10) / 10);
+            }
+            if (T_values.length === 0 || !T_values.includes(T_max)) T_values.push(T_max);
+            
+            const D_values = [];
+            for (let d = D_min; d <= D_max; d += step) {
+                D_values.push(Math.round(d * 10) / 10);
+            }
+            if (D_values.length === 0 || !D_values.includes(D_max)) D_values.push(D_max);
+            
+            const P_values = [];
+            for (let p = P_min; p <= P_max; p += step) {
+                P_values.push(Math.round(p * 10) / 10);
+            }
+            if (P_values.length === 0 || !P_values.includes(P_max)) P_values.push(P_max);
+            
+            const L_values = [];
+            for (let l = L_min; l <= L_max; l += L_step) {
+                L_values.push(Math.round(l * 10) / 10);
+            }
+            if (L_values.length === 0 || !L_values.includes(L_max)) L_values.push(L_max);
+            
+            // Generate all valid combinations (only essential constraints)
+            let count = 0;
+            for (const T of T_values) {
+                for (const D of D_values) {
+                    // Essential constraint 1: D must not exceed T
+                    if (D > T) continue;
+                    
+                    for (const P of P_values) {
+                        // Essential constraint 2: P must not be less than D
+                        if (P < D) continue;
+                        
+                        for (const L of L_values) {
+                            if (count >= MAX_CANDIDATES) return candidates;
+                            candidates.push({ T, D, P, L });
+                            count++;
+                        }
+                    }
+                }
+            }
+            
+            return candidates;
+        }
+        
+        function showConstraintDiagnostics(diagnostics, T_min, T_max, D_min, D_max, P_min, P_max, L_min, L_max, target_angle, target_width) {
+            const resultsSection = document.getElementById('results-section');
+            const resultsList = document.getElementById('results-list');
+            
+            resultsSection.classList.remove('hidden');
+            
+            const issues = [];
+            
+            if (diagnostics.skipped_D_over_T > 0) {
+                issues.push({
+                    type: 'D_over_T',
+                    count: diagnostics.skipped_D_over_T,
+                    message: '穴径Dが厚みTより大きい組み合わせ',
+                    suggestion: `穴径を${T_max}mm以下にするか、厚みを${D_min}mm以上にしてください`
+                });
+            }
+            
+            if (diagnostics.skipped_P_under_D > 0) {
+                issues.push({
+                    type: 'P_under_D',
+                    count: diagnostics.skipped_P_under_D,
+                    message: '間隔Pが穴径Dより小さい組み合わせ（穴が干渉）',
+                    suggestion: `間隔を${D_min}mm以上にしてください`
+                });
+            }
+            
+            if (diagnostics.skipped_angle > 0 && target_angle !== null) {
+                const closest = diagnostics.closest_to_angle;
+                issues.push({
+                    type: 'angle',
+                    count: diagnostics.skipped_angle,
+                    message: `目標角度${target_angle}°に達する組み合わせがない`,
+                    suggestion: `最も近い角度は${closest.params.angle.toFixed(1)}°（T=${closest.params.T}mm, D=${closest.params.D}mm）\n目標角度を${Math.floor(closest.params.angle - 5)}〜${Math.ceil(closest.params.angle + 5)}°の範囲に調整することをお勧めします`
+                });
+            }
+            
+            if (diagnostics.skipped_width > 0 && target_width !== null) {
+                const closest = diagnostics.closest_to_width;
+                issues.push({
+                    type: 'width',
+                    count: diagnostics.skipped_width,
+                    message: `目標幅${(target_width/1000).toFixed(2)}mに達する組み合わせがない`,
+                    suggestion: `最も近い幅は${(closest.params.width/1000).toFixed(3)}m（T=${closest.params.T}mm, D=${closest.params.D}mm, L=${closest.params.L}m）\n目標幅を${((closest.params.width/1000) * 0.8).toFixed(2)}〜${((closest.params.width/1000) * 1.2).toFixed(2)}mの範囲に調整することをお勧めします`
+                });
+            }
+            
+            issues.sort((a, b) => b.count - a.count);
+            
+            let html = '<div style="background: rgba(255, 77, 77, 0.1); border: 2px solid rgba(255, 77, 77, 0.5); border-radius: 16px; padding: 24px; margin-bottom: 20px;">';
+            html += '<h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #ff4d4d;">⚠️ 有効なパラメータが見つかりませんでした</h3>';
+            html += `<p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">検証した組み合わせ: ${diagnostics.total_checked}通り</p>`;
+            
+            if (issues.length > 0) {
+                html += '<div style="display: flex; flex-direction: column; gap: 16px;">';
+                
+                issues.forEach((issue, index) => {
+                    const severity = index === 0 ? '主な問題' : '副次的な問題';
+                    html += `
+                        <div style="background: white; border-radius: 12px; padding: 16px;">
+                            <div style="font-size: 13px; font-weight: 600; color: #ff4d4d; margin-bottom: 8px;">${severity}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">${issue.message}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">スキップされた数: ${issue.count}通り</div>
+                            <div style="background: rgba(0, 113, 227, 0.1); border-left: 3px solid #0071e3; padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 12px; font-weight: 600; color: #0071e3; margin-bottom: 6px;">💡 推奨される対処法</div>
+                                <div style="font-size: 13px; color: var(--text-primary); white-space: pre-line;">${issue.suggestion}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            html += `
+                <div style="margin-top: 20px; padding: 16px; background: rgba(0, 113, 227, 0.1); border-radius: 12px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #0071e3; margin-bottom: 8px;">🔧 次のアクション</div>
+                    <ul style="font-size: 13px; color: var(--text-primary); margin-left: 20px; line-height: 1.8;">
+                        <li>上記の推奨値に基づいて入力を調整してください</li>
+                        <li>または、一部の入力欄を空白にして制約を緩和してください</li>
+                        <li>より広い範囲（min/max）を指定すると候補が見つかりやすくなります</li>
+                    </ul>
+                </div>
+            `;
+            
+            html += '</div>';
+            
+            resultsList.innerHTML = html;
+        }
+        
+        function displayResults(results, target_angle, target_width) {
+            const resultsSection = document.getElementById('results-section');
+            const resultsList = document.getElementById('results-list');
+            
+            resultsSection.classList.remove('hidden');
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+            
+            results.forEach((result, index) => {
+                const rank = index + 1;
+                const tdRatio = (result.T / result.D).toFixed(2);
+                const calculatedWidth = (result.width / 1000).toFixed(3); // mm to m
+                
+                // Warning indicators
+                const warnings = [];
+                if (result.isHoleVisible) {
+                    warnings.push('⚠️ 穴が目立つ可能性があります');
+                }
+                if (target_angle !== null) {
+                    const angleDiff = Math.abs(result.angle - target_angle);
+                    if (angleDiff > 10) {
+                        warnings.push(`⚠️ 目標角度から${angleDiff.toFixed(1)}°離れています`);
+                    }
+                }
+                if (target_width !== null) {
+                    const widthDiff = Math.abs(result.width - target_width);
+                    const widthDiffPercent = (widthDiff / target_width * 100).toFixed(0);
+                    if (widthDiffPercent > 20) {
+                        warnings.push(`⚠️ 目標幅から${widthDiffPercent}%離れています`);
+                    }
+                }
+                
+                html += `
+                    <div style="background: var(--secondary-gradient); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s ease;" 
+                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--button-shadow)';" 
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--control-shadow)';"
+                         onclick="applyParameters(${result.T}, ${result.D}, ${result.P})">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="background: var(--primary-gradient); color: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;">${rank}</div>
+                                <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">スコア: ${(result.finalScore * 100).toFixed(1)}</div>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">クリックで適用</div>
+                        </div>`;
+                
+                // Display warnings if any
+                if (warnings.length > 0) {
+                    html += `<div style="background: rgba(255, 152, 0, 0.1); border-left: 3px solid #ff9800; padding: 8px; margin-bottom: 8px; border-radius: 6px; font-size: 12px; color: #e65100;">`;
+                    warnings.forEach(warning => {
+                        html += `<div>${warning}</div>`;
+                    });
+                    html += `</div>`;
+                }
+                
+                html += `
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 13px;">
+                            <div><span style="color: var(--text-secondary);">厚み T:</span> <strong>${result.T.toFixed(1)}mm</strong></div>
+                            <div><span style="color: var(--text-secondary);">穴径 D:</span> <strong>${result.D.toFixed(1)}mm</strong></div>
+                            <div><span style="color: var(--text-secondary);">間隔 P:</span> <strong>${result.P.toFixed(1)}mm</strong></div>
+                            <div><span style="color: var(--text-secondary);">距離 L:</span> <strong>${result.L.toFixed(1)}m</strong></div>
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-light); display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: var(--text-secondary);">
+                            <div>視差角度: <strong style="color: var(--text-primary);">${result.angle.toFixed(1)}°</strong></div>
+                            <div>視差幅: <strong style="color: var(--text-primary);">${calculatedWidth}m</strong></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultsList.innerHTML = html;
+        }
+        
+        function calculateEffectiveAngle(T, D, P, L) {
+            const alpha_base = 2 * Math.atan(D / T) * (180 / Math.PI);
+            
+            let K_distance;
+            if (L <= 0.5) K_distance = 1.045;
+            else if (L <= 1.0) K_distance = 1.025;
+            else if (L <= 2.0) K_distance = 1.000;
+            else if (L <= 4.0) K_distance = 0.975;
+            else K_distance = 0.955;
+            
+            const pitch = D + P;
+            let K_pitch;
+            if (pitch <= 1.2) K_pitch = 1.040;
+            else if (pitch <= 1.5) K_pitch = 1.080;
+            else if (pitch <= 2.0) K_pitch = 0.920;
+            else K_pitch = 0.880;
+            
+            const D_T_ratio = D / T;
+            let K_DT;
+            if (D_T_ratio <= 0.5) K_DT = 1.150;
+            else if (D_T_ratio <= 1.0) K_DT = 0.920;
+            else K_DT = 0.800;
+            
+            const angle = alpha_base * K_distance * K_pitch * K_DT;
+            return angle;
+        }
+        
+        window.applyParameters = function(T, D, P) {
+            showNotification('Applying parameters...');
+            
+            setTimeout(() => {
+                manualModeBtn.click();
+                
+                setTimeout(() => {
+                    spacingSlider.min = D;
+                    spacingInput.min = D;
+                    
+                    shapeSizeSlider.value = D;
+                    shapeSizeInput.value = D;
+                    shapeSizeValue.textContent = `${D.toFixed(1)} mm`;
+                    
+                    thicknessSlider.value = T;
+                    thicknessInput.value = T;
+                    thicknessValue.textContent = `${T.toFixed(1)} mm`;
+                    
+                    spacingSlider.value = P;
+                    spacingInput.value = P;
+                    spacingValue.textContent = `${P.toFixed(1)} mm`;
+                    
+                    if (currentMode !== '2D') {
+                        mode2DButton.click();
+                    }
+                    
+                    setTimeout(() => {
+                        updateCanvas();
+                        showNotification('Parameters applied.（check out 3D mode!）');
+                    }, 100);
+                }, 100);
+            }, 50);
+        };
+        
+        updateCanvas();
+    </script>
+</body>
+</html>
