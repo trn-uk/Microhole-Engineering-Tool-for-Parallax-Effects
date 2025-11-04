@@ -1,14 +1,14 @@
 /* イントロ再生前のコンテナ（ヘッダー含む） */
 .container {
-    opacity: 0; /* style.cssから継承 (変更なし) */
+    opacity: 0;
     /* style.cssの「transition: 1.0s ease-in」を上書き */
-    transition: opacity 1.0s ease-in 0.5s; 
+    transition: opacity 1.0s ease-in 0.5s;
 }
 
 /* イントロ再生前のヘッダーロゴ */
 header .logo {
     opacity: 0;
-    /* (あなたの調整値) 1.4秒後から0.3秒かけてフェードイン */
+    /* ロゴのクロスフェード（スプラッシュロゴとタイミングを合わせる） */
     transition: opacity 0.3s ease 1.4s; 
 }
 
@@ -18,18 +18,19 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 100px 0px;
+    
+    padding: 6.9vw 0; /* 100px -> 6.9vw */
 
     opacity: 0; /* 初期状態は透明 */
-    /* ロゴが動き始めてから「早めに」フェードイン */
+    /* ロゴ着地後(1.5s)にフェードイン */
     transition: opacity 0.5s ease-in 1.5s;
 }
 
 .video-placeholder {
-    padding: 50px 0px;
+    padding: 3.5vw 0; /* 50px -> 3.5vw */
     border: 0px solid #0078FF; 
-    width: 50vw; 
-    height: 45vh;
+    width: 50vw; /* 変更なし */
+    height: 45vh; /* 変更なし */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -37,90 +38,90 @@ main {
 
 
 
-/* --- 3. フッターテキスト --- */
+/* --- 3. コンテンツエリア --- */
 section#content-start {
     width: 100%;
-    padding-top: 60px; 
-    padding-bottom: 50px; 
+    padding-top: 4.2vw; /* 60px -> 4.2vw */
+    padding-bottom: 3.5vw; /* 50px -> 3.5vw */
 }
 
 /* メインのテキスト */
 .content-text-main,
 .content-text-sub {
-    font-size: 1rem;
+    font-size: 1rem; /* 変更なし */
     font-weight: 10; 
     color: #606060;
-    line-height: 1.7;
-    letter-spacing: 0.05em;
-    margin-bottom: 40px;
-    max-width: 600px; 
+    line-height: 1.7; /* 変更なし */
+    letter-spacing: 0.05em; /* 変更なし */
+    
+    margin-bottom: 2.8vw; /* 40px -> 2.8vw */
+    max-width: 41.7vw; /* 600px -> 41.7vw */
 }
 
 /* 図解イラスト */
 .content-images {
-    margin-top: 50px; 
-    margin-bottom: 50px; 
+    margin-top: 3.5vw; /* 50px -> 3.5vw */
+    margin-bottom: 3.5vw; /* 50px -> 3.5vw */
 }
 
 .content-images img {
-    max-width: 135px; 
+    max-width: 9.4vw; /* 135px -> 9.4vw */
     height: auto;
     display: block;
 }
 
 /* Studiesタイトル */
 .studies-title {
-    padding: 150px 0px;
-    font-size: 2rem; 
+    padding: 10.4vw 0; /* 150px -> 10.4vw */
+    
+    font-size: 2rem; /* 変更なし */
     font-weight: 500; 
     color: #aaa; 
-    /* letter-spacing: 0.1em;  */
     margin: 0; 
-    /* text-transform: uppercase;  */
     text-align: center;
     position: relative;
 }
 
 .tool-title {
-    padding: 0px 100px;
-    font-size: 2rem; 
+    padding: 0 6.9vw; /* 100px -> 6.9vw */
+    
+    font-size: 2rem; /* 変更なし */
     font-weight: 500; 
     color: #aaa; 
     margin: 0; 
     text-align: center;
     position: relative;
-    /* ::before (縦線) の指定がない */
 }
 
 .studies-title::before {
-    content: ''; /* 疑似要素 */
+    content: '';
     display: block;
-    /* 線のスタイル */
-    width: 1.2px; /* 線の太さ */
-    height: 150px; /* 線の長さ*/
-    background-color: #d1d1d1; /* 線の色 */
-    /* 線を中央に配置し、線の下（タイトルとの間）に余白を設ける */
-    margin: 0 auto 40px; /* 上:0, 左右:自動(中央), 下:40px */
+    
+    width: 1.2px; /* 細い線はpxのままが綺麗です */
+    height: 10.4vw; /* 150px -> 10.4vw */
+    background-color: #d1d1d1;
+    
+    margin: 0 auto 2.8vw; /* 40px -> 2.8vw */
 }
 
 a.title-link {
-    text-decoration: none; /* 下線を削除 */
-    color: inherit; /* 親(h2)の色を継承 */
-    transition: color 0.2s ease; /* (任意) 色が滑らかに変わるアニメーション */
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
 }
 
 a.title-link:hover {
-    color: #555; /* 濃いグレーに変わる */
+    color: #555;
 }
 
-/* イントロ開始後 */
+/* --- イントロ開始後 --- */
 body.intro-started #splash-screen {
-    pointer-events: none; /* クリックを無効化 */
-    background-color: transparent; /* 背景を透明に */
+    pointer-events: none;
+    background-color: transparent;
 }
 
 body.intro-started .splash-logo {
-    top: 20px;
+    top: 1.4vw; /* 20px -> 1.4vw */
     left: 50%;
     transform: translate(-50%, 0);
     opacity: 0;

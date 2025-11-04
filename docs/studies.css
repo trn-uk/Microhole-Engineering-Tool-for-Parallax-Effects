@@ -6,7 +6,7 @@
     /* トップページ (top.css) の .video-placeholder と
       同じようなスタイルを適用 
     */
-    padding: 200px 0px;
+    padding: 16vw 0px;
     width: 60vw; /* 動画の横幅（お好みで 100vw などに変更可） */
     margin: 0 auto; /* 中央揃え */
 
@@ -17,7 +17,7 @@
 
 /* スクロール先のコンテンツエリア */
 #studies-content {
-    padding: 60px 0; /* 上下の余白 */
+    padding: 7vw 0; /* 上下の余白 */
     width: 100%;
 }
 
